@@ -1,0 +1,8 @@
+[requires]
+catch2/3.5.2
+fftw/3.3.10
+[generators]
+CMakeDeps
+CMakeToolchain
+[layout]
+cmake_layout

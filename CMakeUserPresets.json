@@ -1,0 +1,9 @@
+{
+    "version": 4,
+    "vendor": {
+        "conan": {}
+    },
+    "include": [
+        "C:\\__MAIN__\\Coding\\Git\\dsp\\out\\build\\x64-Debug\\conan\\build\\Debug\\generators\\CMakePresets.json"
+    ]
+}

@@ -1,6 +1,7 @@
 #include <cmath>
 #include <complex>
 #include <concepts>
+#include <cstddef>
 #include <vector>
 
 namespace tnt::dsp
@@ -15,6 +16,11 @@ public:
         , m_sample_interval(1 / static_cast<T>(m_sample_rate))
         , m_size(size)
     {}
+
+    std::size_t size() const
+    {
+        return m_size;
+    }
 
     std::vector<T> cosine(T frequency, T amplitude = 1, T phase_shift = 0, T vertical_shift = 0) const
     {

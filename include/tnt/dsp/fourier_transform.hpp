@@ -1,20 +1,23 @@
 #pragma once
 
+#include "impl/fourier_transform.hpp"
+#include "impl/utility.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <complex>
 #include <concepts>
+#include <cstddef>
 
 // TODO: Assert input size is a power of 2
 
 namespace tnt::dsp {
 
 template <std::floating_point T>
-void in_place_fourier_transform(std::complex<T>* x, std::size_t N);
-
-template <std::floating_point T>
 void fourier_transform(const T* x, std::complex<T>* X, std::size_t N)
 {
+    assert(impl::is_power_of_2(N));
+
     // Taking advantage of symmetry the FFT of a real signal can be computed
     // using a single N/2-point complex FFT. Split the input signal into its
     // even and odd components and load the data into a single complex vector.
@@ -24,12 +27,17 @@ void fourier_transform(const T* x, std::complex<T>* X, std::size_t N)
     }
 
     // Perform an in-place FFT
-    in_place_fourier_transform(X, N / 2);
+    impl::in_place_fourier_transform(X, N / 2);
+
+    // Save a copy of the original X[0]
+    // It is needed later, but will be overwritten by the in-place algorithm
+    std::complex<T> X_0 = X[0];
 
     // The FFT is periodic so it is valid append X[0] to the end. This is
     // required to avoid a buffer overflow in the next section.
-    X[N / 2] = X[0];
+    X[N / 2] = X_0;
 
+    // Extract the real FFT from the output of the complex FFT
     for (std::size_t m = 0; m < N / 2; ++m)
     {
         T X_r_first = (X[m].real() + X[N / 2 - m].real()) / 2;
@@ -48,8 +56,6 @@ void fourier_transform(const T* x, std::complex<T>* X, std::size_t N)
         X[m + N / 2] = { real, imag };
     }
 
-    std::complex<T> temp = X[0];
-
     // Copy the 2nd half of the array into the first half
     std::copy(X + N / 2, X + N, X);
 
@@ -60,57 +66,19 @@ void fourier_transform(const T* x, std::complex<T>* X, std::size_t N)
     }
 
     // X[N / 2] is a special case
-    X[N / 2] = temp.real() - temp.imag();
+    X[N / 2] = X_0.real() - X_0.imag();
 }
 
 template <std::floating_point T>
 void fourier_transform(const std::complex<T>* x, std::complex<T>* X, std::size_t N)
 {
+    assert(impl::is_power_of_2(N));
+
     // Copy the input data into the output array
     std::copy(x, x + N, X);
 
     // Perform an in-place FFT
-    in_place_fourier_transform(X, N);
-}
-
-template <std::floating_point T>
-void in_place_fourier_transform(std::complex<T>* x, std::size_t N) {
-    // Bit-reversal permutation
-    std::size_t log2_N = static_cast<std::size_t>(std::log2(N));
-    for (std::size_t i = 0; i < N; ++i)
-    {
-        std::size_t j = 0;
-        for (std::size_t k = 0; k < log2_N; ++k)
-        {
-            j |= ((i >> k) & 1) << (log2_N - 1 - k);
-        }
-        if (j > i)
-        {
-            std::swap(x[i], x[j]);
-        }
-    }
-
-    // Cooley-Tukey iteration
-    for (std::size_t size = 2; size <= N; size *= 2)
-    {
-        T angle = -2 * static_cast<T>(M_PI) / size;
-        std::complex<T> w(1.0, 0.0);
-        std::complex<T> wn(std::cos(angle), std::sin(angle));
-
-        for (std::size_t j = 0; j < N; j += size)
-        {
-            std::complex<T> w_current(1.0, 0.0);
-            for (std::size_t k = 0; k < size / 2; ++k)
-            {
-                std::complex<T> t = w_current * x[j + k + size / 2];
-                std::complex<T> u = x[j + k];
-                x[j + k] = u + t;
-                x[j + k + size / 2] = u - t;
-                w_current *= wn;
-            }
-            w *= wn;
-        }
-    }
+    impl::in_place_fourier_transform(X, N);
 }
 
 }
